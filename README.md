@@ -9,83 +9,107 @@
 
 ---
 
+## 📌 Resumo Executivo
+
+**FraudGraph Brasil** é um agente inteligente de investigação de fraudes digitais baseado em **Neo4j Aura** e **Inteligência Artificial Generativa**.
+
+A solução identifica padrões suspeitos envolvendo CPFs, dispositivos físicos compartilhados e contas de destino recorrentes — permitindo que analistas de compliance detectem possíveis esquemas fraudulentos em **segundos**, não em horas.
+
+O projeto demonstra como bancos de dados em grafos, combinados com LLMs, eliminam o principal ponto cego dos sistemas antifraude tradicionais: a **invisibilidade das conexões entre entidades aparentemente independentes**.
+
+> Este projeto foi inspirado em desafios reais observados ao longo de uma trajetória profissional em ambientes de processamento bancário e sistemas de missão crítica, adaptados para fins de demonstração tecnológica no contexto do Neo4j Aura Agent Hackathon 2026.
+
+---
+
 ## 🎯 1. Problema de Negócio
 
-O ecossistema financeiro brasileiro registra um crescimento contínuo de fraudes estruturadas em **redes de contas laranjas**, operadas por centrais de fraude que alternam múltiplos CPFs em um único hardware físico para pulverizar transferências Pix roubadas antes que os sistemas de segurança consigam reagi.
+Instituições financeiras brasileiras enfrentam perdas crescentes decorrentes de fraudes digitais estruturadas em **redes de contas laranjas**.
 
-O desafio crítico **não é detectar uma transação suspeita isolada** — os sistemas tradicionais baseados em regras já fazem isso razoavelmente. O desafio real é **enxergar a rede**: identificar que João, Maria e Pedro, aparentemente clientes independentes, estão operando do mesmo aparelho celular e transferindo para o mesmo destino Pix em minutos de diferença.
+Grande parte dessas fraudes opera com múltiplos CPFs distintos, dispositivos físicos compartilhados e contas de destino recorrentes — um padrão que sistemas tradicionais **analisam em filas isoladas por cliente**, sem capacidade de cruzar esses vetores em tempo real.
 
-Esse padrão — invisível para bancos de dados relacionais sem cruzamentos massivos de tabelas — é exatamente o que o FraudGraph Brasil foi projetado para capturar.
+O resultado é que João, Maria e Pedro — aparentemente três clientes independentes — transferem dinheiro do mesmo aparelho celular para o mesmo destino Pix em minutos de diferença, e os alertas só chegam **horas depois**, quando o dinheiro já foi pulverizado.
 
----
-
-## 🏢 2. Contexto & Baseline
-
-**Cenário operacional:** Criminosos operam em "centrais de fraude", alternando identidades (CPFs clonados ou laranjas) em um mesmo dispositivo físico para atomizar o rastro financeiro e dificultar o rastreamento.
-
-**Baseline atual (o que o mercado usa hoje):**
-
-Os sistemas antifraude tradicionais operam sobre bancos de dados relacionais (SQL) com regras estáticas por cliente — como limite de valor por transação ou frequência de acessos por CPF individual. Para detectar uma fraude de rede nesses sistemas, seriam necessários múltiplos `JOINs` sobre tabelas de milhões de registros, tornando a análise em tempo real **computacionalmente inviável**.
-
-**Por que o grafo muda o jogo:** Em Neo4j, caminhar por um relacionamento tem custo computacional constante `O(1)`, independente do volume total de dados. A mesma consulta que exigiria horas em SQL é resolvida em milissegundos em Cypher.
+O desafio central não é detectar uma transação suspeita isolada. É **enxergar a rede**.
 
 ---
 
-## 📋 3. Premissas da Solução
+## 🏢 2. Contexto
 
-- O identificador de hardware (`device_id`) e o endereço de rede (`ip`) são capturados de forma confiável no momento do login no aplicativo bancário.
-- A concentração de **3 ou mais CPFs distintos** realizando transferências para um mesmo destino Pix a partir do mesmo dispositivo físico é tratada como **gatilho de risco máximo (Alerta Vermelho)**.
-- O modelo de dados representa uma janela operacional recente e válida para identificação de padrões, não para causalidade estatística definitiva.
-- Registros sem `device_id` ou `ip` são excluídos da análise de triangulação por ausência de âncora física de detecção.
+Criminosos organizam "centrais de fraude" onde múltiplas identidades (CPFs clonados ou laranjas) são operadas no mesmo hardware físico para atomizar transferências Pix antes que os sistemas de segurança reajam.
+
+**O que os sistemas atuais fazem:**
+Bancos de dados relacionais (SQL) aplicam regras estáticas por CPF — limite de valor, frequência de acesso, score individual. Para capturar fraudes de rede nesse modelo, seriam necessários múltiplos `JOINs` entre tabelas de milhões de registros, tornando a análise em tempo real **computacionalmente inviável**.
+
+**O que o grafo muda:**
+Em Neo4j, caminhar por um relacionamento tem custo `O(1)`, independente do volume total de dados. A mesma detecção que exigiria minutos em SQL é resolvida em milissegundos em Cypher — tornando a análise de rede viável dentro da janela de liquidação instantânea do Pix.
 
 ---
 
-## 🛠️ 4. Estratégia da Solução & Arquitetura
+## 📋 3. Premissas
 
-A solução foi estruturada em uma arquitetura **GraphRAG (Graph-based Retrieval-Augmented Generation)** com quatro camadas de responsabilidade bem delimitadas:
+- Um dispositivo físico (`device_id`) pode ser utilizado por múltiplos clientes — mas o compartilhamento por **3 ou mais CPFs distintos** direcionados ao mesmo destino financeiro é tratado como **indicador de risco máximo**.
+- Uma conta destino pode receber recursos de múltiplos clientes — mas a recorrência coordenada a partir do mesmo hardware é a assinatura topológica de uma central de fraude.
+- O identificador de hardware e o endereço IP são capturados de forma confiável no momento do login no aplicativo bancário.
+- O modelo representa uma janela operacional recente válida para identificação de padrões, não para causalidade estatística definitiva.
+- Registros sem `device_id` são excluídos da análise de triangulação por ausência de âncora física de detecção.
 
-**Passo 1 — Ingestão de Vínculos (`src/ingestion/`)**
-Script idempotente que cria nós e relacionamentos no Neo4j Aura Cloud com constraints de unicidade garantindo que CPFs, dispositivos e chaves Pix não sejam duplicados entre execuções.
+---
 
-**Passo 2 — Detecção de Topologia Suspeita (`src/services/fraud_detector.py`)**
-Query Cypher de triangulação que isola exclusivamente os subgrafos onde múltiplos CPFs compartilham o mesmo hardware e o mesmo destino financeiro — a assinatura topológica de uma central de fraude.
+## 🛠️ 4. Estratégia da Solução
 
-**Passo 3 — Camada Agentiva (`src/agents/`)**
-Agente de IA (Python + LangChain + GPT-4o) que recebe o subgrafo bruto em JSON, aplica raciocínio contextual ancorado em um `SYSTEM_PROMPT` de Analista Sênior de Prevenção a Fraudes, e traduz os dados estruturados em um **parecer executivo acionável**.
-
-**Passo 4 — Interface de Decisão (`src/ui/app.py`)**
-Dashboard Streamlit construído para equipes de Auditoria, Riscos e Compliance executarem a varredura e receberem o relatório de IA em linguagem natural — sem exigir conhecimento técnico em grafos.
+A solução mapeia o problema como um problema de **topologia de grafo**, não de filtragem de registros:
 
 ```
-┌──────────────────────┐
-│   Massa de Dados     │  ← src/ingestion/load_data.py
-└──────────┬───────────┘
-           ▼
-┌───────────────────────────┐
-│    Neo4j Aura Cloud       │  ← Constraints + Nós + Relacionamentos
-│ (Banco de Dados em Grafo) │     via cypher/01..04
-└──────────┬────────────────┘
-           ▼
-┌──────────────────────────────────────────────────────────┐
-│                     CAMADA AGENTIVA                      │
-│                                                          │
-│ ┌──────────────────┐           ┌───────────────────────┐ │
-│ │  Query Cypher    ├──────────►│    Agente GPT-4o      │ │
-│ │ (Triangulação ≥3)│           │ (Reasoning + Parecer) │ │
-│ └──────────────────┘           └──────────┬────────────┘ │
-└───────────────────────────────────────────┼──────────────┘
-                                            ▼
-                               ┌─────────────────────────┐
-                               │  Interface Streamlit    │
-                               │  (Decisão de Bloqueio)  │
-                               └─────────────────────────┘
+      (:Cliente {cpf})
+            ↓  [:UTILIZA]
+      (:Dispositivo {device_id})
+            ↑  [:UTILIZA]
+  (:Cliente) (:Cliente) ...
+
+      (:Cliente)
+            ↓  [:TRANSFERIU]
+      (:ContaDestino {pix})
+            ↑  [:TRANSFERIU]
+  (:Cliente) (:Cliente) ...
 ```
+
+Quando os dois padrões convergem — **mesmo dispositivo + mesmo destino + 3 ou mais CPFs** — a query Cypher de triangulação sinaliza o cluster como vetor de fraude de rede.
+
+Essa abordagem transforma a detecção de fraude de uma operação de varredura em tabelas para uma **travessia de grafo direcionada**, respondendo em milissegundos.
 
 ---
 
-## 🕸️ 5. Modelo do Grafo
+## 🏛️ 5. Arquitetura
 
-A modelagem prioriza densidade relacional com o mínimo de nós necessário para capturar o vetor de fraude de rede.
+```
+   [ Analista / Interface Web ]
+              ↓
+       [ Streamlit UI ]          ← src/ui/app.py
+              ↓
+     [ Aura Agent (IA) ]         ← src/agents/graph_agent.py
+       GPT-4o + LangChain          (Reasoning + Parecer Executivo)
+              ↓
+      [ Neo4j Aura Cloud ]       ← src/services/fraud_detector.py
+     Query Cypher O(1)             (Triangulação ≥ 3 CPFs)
+              ↓
+       [ Massa de Dados ]        ← src/ingestion/load_data.py
+    Clientes · Dispositivos        (Ingestão Idempotente)
+      Contas Destino
+```
+
+**Separação de responsabilidades:**
+
+| Camada | Responsabilidade |
+|---|---|
+| `ingestion/` | Criação idempotente de nós e relacionamentos no Aura |
+| `services/` | Query Cypher de triangulação — detecção pura de padrão |
+| `agents/` | Interpretação do subgrafo em linguagem natural (LLM) |
+| `ui/` | Interface de decisão para equipes de Compliance |
+| `tests/` | Testes unitários com mocks — regras de negócio isoladas de infraestrutura |
+
+---
+
+## 🕸️ 6. Modelagem do Grafo
 
 **Nós (Nodes)**
 
@@ -117,49 +141,107 @@ RETURN d.device_id   AS dispositivo,
        total_cpfs
 ```
 
-Esta query retorna **taxa zero de falso-positivo** para o padrão de central de fraude, pois exige simultaneamente: mesmo hardware + mesmo destino Pix + três ou mais identidades distintas.
+Esta query exige simultaneamente: mesmo hardware + mesmo destino Pix + três ou mais identidades distintas — produzindo **taxa zero de falso-positivo** para o padrão de central de fraude.
 
 ---
 
-## ⚙️ 6. Decisões Técnicas & Trade-offs
+## ⚙️ 7. Decisões Técnicas & Trade-offs
 
-**Neo4j vs. PostgreSQL/MySQL**
+**Por que Neo4j e não PostgreSQL/MySQL?**
 
-A alternativa natural seria implementar a detecção de rede em SQL com múltiplos `JOINs` entre tabelas de clientes, dispositivos e transações. O trade-off aceito é a introdução de um banco de dados especializado (Neo4j) em troca de custo computacional `O(1)` por travessia de relacionamento, inviável de replicar em SQL para análise em tempo real com volumes bancários reais.
+Fraudes digitais estruturadas são fundamentalmente um **problema de relacionamento**, não de registro. Bancos relacionais armazenam eventos isolados com eficiência — mas cruzar três tabelas (clientes, dispositivos, transações) para encontrar convergências em tempo real exige `JOINs` de custo crescente. Grafos identificam conexões com custo `O(1)` por travessia. Por isso Neo4j foi escolhido.
 
-**GPT-4o vs. GPT-3.5-turbo**
+*Trade-off aceito:* introdução de um banco especializado adicional na arquitetura, com curva de aprendizado em Cypher.
 
-Optou-se pelo GPT-4o pela qualidade do raciocínio contextual (*Reasoning*) ao interpretar subgrafos estruturados. O trade-off aceito é o custo maior por token — mitigável em produção com cache de pareceres para padrões idênticos ou uso de `gpt-4o-mini` para triagem inicial.
+**Por que Streamlit e não FastAPI + React?**
 
-**Agente LangChain vs. chamada direta à API OpenAI**
+Streamlit permite construir rapidamente uma interface funcional para demonstração do agente sem overhead de frontend separado — adequado para o escopo de MVP de hackathon.
 
-LangChain foi escolhido pela abstração de mensagens (`SystemMessage`, `HumanMessage`) e pela facilidade de extensão futura com ferramentas (`tools`) e memória de contexto. O trade-off aceito é a dependência de uma camada adicional que pode ficar defasada em relação ao SDK nativo da OpenAI.
+*Trade-off aceito:* menor flexibilidade de UI em troca de velocidade de entrega e foco no diferencial real do projeto (grafo + IA).
 
-**Mocks em Testes Unitários vs. Testes de Integração**
+**Por que IA Generativa (GPT-4o) e não regras fixas?**
 
-Os testes em `tests/test_detector.py` interceptam a conexão com o Neo4j via `unittest.mock`, isolando as regras de negócio de oscilações de rede e eliminando custo de créditos Aura em pipelines de CI/CD. O trade-off aceito é a ausência de validação do schema real do banco em execuções automatizadas.
+Regras fixas produzem alertas estruturados — mas exigem que o analista interprete os dados brutos do grafo. O agente GPT-4o transforma o subgrafo JSON em **parecer executivo em linguagem natural**, tornando a decisão de bloqueio acessível para Diretores de Operações sem conhecimento técnico em grafos.
 
-**Variáveis de Ambiente via `.env` vs. Secrets Manager**
+*Trade-off aceito:* custo por token e latência da chamada à API OpenAI — mitigável com cache de pareceres para padrões idênticos.
 
-Para o escopo de MVP de hackathon, credenciais são injetadas via arquivo `.env` com `.gitignore` configurado. Em produção bancária real, o trade-off correto seria migrar para um cofre de credenciais (AWS Secrets Manager, Azure Key Vault ou HashiCorp Vault).
+**Por que mocks nos testes unitários?**
+
+Os testes em `tests/test_detector.py` interceptam a conexão com o Neo4j via `unittest.mock`, isolando as regras de negócio de oscilações de rede e eliminando custo de créditos Aura em pipelines de CI/CD.
+
+*Trade-off aceito:* ausência de validação do schema real do banco em execuções automatizadas — coberta manualmente via `notebooks/exploracao.ipynb`.
 
 ---
 
-## 📊 7. Insights de Negócio & Resultados
+## 🤖 8. Implementação do Agente
+
+O agente opera em três etapas sequenciais:
+
+**Etapa 1 — Consulta ao Grafo**
+`FraudDetector.detect_high_risk_patterns()` executa a query de triangulação e retorna o subgrafo anômalo como lista de dicionários JSON.
+
+**Etapa 2 — Injeção de Contexto**
+O `SYSTEM_PROMPT` ancora o modelo GPT-4o na persona de *Analista Sênior de Prevenção a Fraudes Bancárias*, com foco em identificar o padrão técnico suspeito, explicar o risco operacional e recomendar ações imediatas de bloqueio.
+
+**Etapa 3 — Geração do Parecer**
+`FraudGraphAgent.analyze_fraud_pattern()` combina o prompt de sistema com os dados brutos do grafo e retorna um relatório em linguagem natural estruturado para tomada de decisão — sem exigir que o analista leia JSON ou entenda Cypher.
+
+---
+
+## 📊 9. Resultados
 
 **Padrão detectado na massa de dados simulada:**
 
 A query de triangulação isolou um cluster onde **João Silva, Maria Souza e Pedro Santos** — três CPFs aparentemente independentes — utilizaram o **mesmo aparelho físico (IPHONE999 / IP 192.168.1.10)** para transferir respectivamente R$ 5.000, R$ 4.500 e R$ 5.500 para o **mesmo destino Pix (`fraude@pix.com` / Banco X)** na mesma data.
 
-Em um sistema SQL tradicional, esses três registros seriam analisados em filas independentes por CPF, sem cruzamento em tempo real. No grafo, o padrão é detectado em uma única varredura Cypher.
-
-**Performance de Negócio (projeção para produção):**
-
-Em ambientes bancários críticos como o da operação Bradesco, onde transações Pix são liquidadas em milissegundos e janelas de contestação são curtas, a automação deste gatilho com o agente de IA reduz o tempo de resposta do time de segurança de **horas para milissegundos** — preservando o caixa da instituição contra chargebacks e multas regulatórias do Banco Central.
+Em um sistema SQL tradicional, esses três registros seriam analisados em filas independentes por CPF. No grafo, o padrão é detectado em **uma única varredura Cypher**.
 
 ---
 
-## 🚀 8. Como Executar o Projeto
+## 💼 10. Impacto de Negócio
+
+Em uma investigação tradicional, um analista de compliance poderia gastar vários minutos — ou horas — correlacionando transações manualmente entre planilhas e sistemas legados para identificar que três clientes distintos compartilham o mesmo hardware.
+
+Com o FraudGraph Brasil, **padrões suspeitos são identificados em segundos** através da análise de relacionamentos em grafos, e o parecer do agente de IA entrega a recomendação de bloqueio já formatada para ação imediata.
+
+**Impacto esperado em ambiente de produção:**
+
+- Redução expressiva do tempo de investigação por ocorrência
+- Maior visibilidade de conexões ocultas entre entidades aparentemente independentes
+- Apoio à tomada de decisão por equipes sem background técnico em grafos
+- Melhor priorização de alertas com base em densidade de relacionamentos suspeitos
+- Redução de chargebacks e exposição a multas regulatórias do Banco Central
+
+---
+
+## 🧠 11. Aprendizados
+
+O maior aprendizado deste projeto não foi técnico — foi conceitual.
+
+A tentação inicial ao modelar o problema foi reproduzir a lógica tabular do SQL em nós e propriedades. A virada acontece quando se compreende que o **valor do grafo está nos relacionamentos**, não nos nós individuais. A query de triangulação é mais próxima da linguagem do analista de fraudes do que qualquer `JOIN` poderia ser.
+
+Durante o desenvolvimento, os aprendizados técnicos consolidados foram:
+
+- Modelagem orientada a relacionamentos no Neo4j Aura Cloud
+- Escrita de queries Cypher para detecção de padrões de rede
+- Construção de agentes baseados em grafos com LangChain e GPT-4o
+- Engenharia de prompts para investigação de fraudes financeiras
+- Arquitetura GraphRAG: da consulta estruturada ao parecer em linguagem natural
+- Isolamento de regras de negócio em testes unitários com mocks de infraestrutura
+
+---
+
+## 🚀 12. Próximos Passos
+
+- Implementar algoritmos nativos do **Neo4j GDS** — `PageRank` e `Community Detection` — para descobrir novos padrões de fraude antes do primeiro relato de sinistro
+- Adicionar **dimensão temporal** nos relacionamentos `TRANSFERIU` (janela de 5 minutos como gatilho adicional de risco)
+- Ampliar cobertura de testes unitários da camada agentiva com mocks da API OpenAI
+- Implementar **cache de pareceres** para subgrafos idênticos, reduzindo custo de tokens em produção
+- Migrar gestão de credenciais para cofre seguro (Vault / Secrets Manager) para cenários de produção bancária
+
+---
+
+## ▶️ 13. Como Executar o Projeto
 
 **Pré-requisitos**
 
@@ -170,21 +252,21 @@ Em ambientes bancários críticos como o da operação Bradesco, onde transaçõ
 **Passo a passo**
 
 ```bash
-# 1. Clone o repositório
+# Clone o repositório
 git clone https://github.com/Santosdevbjj/FraudGraph-Brasil-fraudes-digitais.git
 cd FraudGraph-Brasil-fraudes-digitais
 
-# 2. Instale as dependências
+# Instale as dependências
 pip install -r requirements.txt
 
-# 3. Configure as variáveis de ambiente
+# Configure as variáveis de ambiente
 cp .env.example .env
 # Edite o .env com suas credenciais do Neo4j Aura e OpenAI
 
-# 4. Popule o banco de dados com a massa de dados simulada
+# Popule o banco de dados com a massa de dados simulada
 python src/ingestion/load_data.py
 
-# 5. Inicialize o dashboard
+# Inicialize o dashboard
 streamlit run src/ui/app.py
 ```
 
@@ -193,28 +275,28 @@ streamlit run src/ui/app.py
 ```
 FraudGraph-Brasil/
 ├── cypher/
-│   ├── 01_constraints.cypher     # Unicidade de CPF, device_id e Pix
-│   ├── 02_nodes.cypher           # Criação de Clientes, Dispositivos e Contas
-│   ├── 03_relationships.cypher   # Vínculos UTILIZA e TRANSFERIU
+│   ├── 01_constraints.cypher        # Unicidade de CPF, device_id e Pix
+│   ├── 02_nodes.cypher              # Criação de Clientes, Dispositivos e Contas
+│   ├── 03_relationships.cypher      # Vínculos UTILIZA e TRANSFERIU
 │   └── 04_detection_queries.cypher  # Query de triangulação de risco
 ├── docs/
-│   └── arquitetura.md            # Documento de arquitetura detalhado
+│   └── arquitetura.md               # Documento de arquitetura detalhado
 ├── notebooks/
-│   └── exploracao.ipynb          # EDA e validação de hipóteses (Colab-ready)
+│   └── exploracao.ipynb             # EDA e validação de hipóteses (Colab-ready)
 ├── src/
 │   ├── agents/
-│   │   ├── graph_agent.py        # FraudGraphAgent (LangChain + GPT-4o)
-│   │   └── prompts.py            # SYSTEM_PROMPT do analista de fraudes
+│   │   ├── graph_agent.py           # FraudGraphAgent (LangChain + GPT-4o)
+│   │   └── prompts.py               # SYSTEM_PROMPT do analista de fraudes
 │   ├── database/
-│   │   └── neo4j_connection.py   # Singleton de conexão com Neo4j Aura
+│   │   └── neo4j_connection.py      # Singleton de conexão com Neo4j Aura
 │   ├── ingestion/
-│   │   └── load_data.py          # Script idempotente de ingestão
+│   │   └── load_data.py             # Script idempotente de ingestão
 │   ├── services/
-│   │   └── fraud_detector.py     # Query coração: triangulação ≥3 CPFs
+│   │   └── fraud_detector.py        # Query coração: triangulação ≥ 3 CPFs
 │   └── ui/
-│       └── app.py                # Dashboard Streamlit para Compliance
+│       └── app.py                   # Dashboard Streamlit para Compliance
 ├── tests/
-│   └── test_detector.py          # Testes unitários com mocks do Neo4j
+│   └── test_detector.py             # Testes unitários com mocks do Neo4j
 ├── .env.example
 ├── .python-version
 ├── requirements.txt
@@ -223,29 +305,9 @@ FraudGraph-Brasil/
 
 ---
 
-## 🧠 9. Aprendizados & Próximos Passos
+## 👤 14. Autor
 
-**O que foi mais difícil e como foi superado:**
-
-A maior complexidade não estava no código, mas na **modelagem do problema como grafo**. A tentação inicial é reproduzir a lógica tabular do SQL em nós e propriedades. A virada acontece quando se entende que o valor do grafo está nos **relacionamentos** — e que a query de triangulação (`UTILIZA` + `TRANSFERIU` convergindo para o mesmo nó) é mais próxima da linguagem do analista de fraudes do que qualquer `JOIN`.
-
-**O que faria diferente em uma segunda iteração:**
-
-Implementaria o `SYSTEM_PROMPT` do agente com técnicas de *few-shot prompting*, incluindo exemplos reais de pareceres de compliance para calibrar o tom e a estrutura do relatório gerado pelo GPT-4o.
-
-**Próximos Passos**
-
-- Implementar algoritmos nativos do Neo4j GDS — `PageRank` e `Community Detection` — para descobrir novos padrões de fraude antes do primeiro relato de sinistro.
-- Adicionar a dimensão temporal nos relacionamentos `TRANSFERIU` (janela de 5 minutos como gatilho adicional de risco).
-- Ampliar cobertura de testes unitários da camada agentiva com mocks da API OpenAI.
-- Implementar cache de pareceres para subgrafos idênticos, reduzindo custo de tokens em produção.
-- Migrar gestão de credenciais para um cofre seguro (Vault / Secrets Manager) para cenários de produção bancária.
-
----
-
-## 👤 Autor
-
-**Sérgio Santos** — Senior Data Engineer & Cloud Architect | Especialista em Ambientes Críticos e Governança de Dados
+**Sérgio Santos** — Senior Data Engineer & Cloud Architect
 
 15+ anos em sistemas bancários de missão crítica (Banco Bradesco S.A.) · DIO Campus Expert
 
