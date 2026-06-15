@@ -41,7 +41,7 @@ Criminosos organizam "centrais de fraude" onde múltiplas identidades (CPFs clon
 Bancos de dados relacionais (SQL) aplicam regras estáticas por CPF — limite de valor, frequência de acesso, score individual. Para capturar fraudes de rede nesse modelo, seriam necessários múltiplos `JOINs` entre tabelas de milhões de registros, tornando a análise em tempo real **computacionalmente inviável**.
 
 **O que o grafo muda:**
-Em Neo4j, caminhar por um relacionamento tem custo `O(1)`, independente do volume total de dados. A mesma detecção que exigiria minutos em SQL é resolvida em milissegundos em Cypher — tornando a análise de rede viável dentro da janela de liquidação instantânea do Pix.
+Grafos são particularmente eficientes para consultas orientadas a relacionamentos, reduzindo a complexidade operacional quando comparados a múltiplos JOINs em cenários de investigação de redes de fraude.
 
 ---
 
