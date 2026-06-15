@@ -93,15 +93,30 @@ Esta query atua filtrando exclusivamente os pontos onde múltiplos usuários dis
 
 
 
-​5. Raciocínio Inteligente com Agente IA (GraphRAG)
+## ​5. Raciocínio Inteligente com Agente IA (GraphRAG)
+
 ​Em vez de devolver o resultado JSON bruto para os analistas humanos, a camada agentiva (alimentada por modelos gpt-4o) realiza o processamento contextual:
 ​Entrada Estruturada: O agente recebe a lista de nós do subgrafo comprometido.
 ​Injeção de Contexto: O SYSTEM_PROMPT ancora a IA a atuar estritamente como um Diretor de Compliance Bancário Senior.
+
+
 ​Raciocínio Técnico (Reasoning): A IA decodifica os nós de grafos e infere o modus operandi da fraude (Ex: "Identificou-se padrão típico de Engenharia Social com pulverização coordenada de saldos no mesmo terminal móvel").
+
+
 ​Output Orientado a Ações: O agente recomenda ações imediatas de segurança, como bloqueio preventivo das contas de destino e bloqueio de novas autenticações a partir do device_id comprometido.
-​6. Decisões de Engenharia e Trade-offs
+
+
+---
+
+
+## ​6. Decisões de Engenharia e Trade-offs
+
 ​Neo4j Connection Singleton: A classe Neo4jConnection implementa um padrão que gerencia o ciclo de vida do Driver de conexão de forma centralizada, mitigando o vazamento de sockets e esgotamento de conexões na instância servida pelo Aura Cloud.
+
+
 ​Mocks em Testes Unitários: O pipeline de testes (tests/test_detector.py) intercepta chamadas de infraestrutura. Isso isola as regras de negócio de oscilações de rede externa e elimina o custo financeiro e de latência durante as esteiras automáticas de integração contínua (CI/CD).
+
+
 ​Arquitetura Baseada em Variáveis de Ambiente: Toda a autenticação e parametrização do sistema consome chaves nativas injetadas no ecossistema (.env), eliminando de forma definitiva a exposição de credenciais corporativas críticas em repositórios públicos de código.
 
 
