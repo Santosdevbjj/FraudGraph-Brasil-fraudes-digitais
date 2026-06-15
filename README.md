@@ -75,8 +75,9 @@ cp .env.example .env   # configure suas credenciais
 streamlit run src/ui/app.py
 
 
+```
 
-
+---
 ---
 
 ## 🎯 1. Problema de Negócio
