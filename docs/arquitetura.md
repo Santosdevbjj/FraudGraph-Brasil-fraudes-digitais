@@ -85,6 +85,7 @@ RETURN d.device_id as dispositivo,
        clientes, 
        total_cpfs
 
+```
 
 ---
 
