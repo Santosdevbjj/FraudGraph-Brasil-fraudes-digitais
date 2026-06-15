@@ -141,7 +141,7 @@ RETURN d.device_id   AS dispositivo,
        total_cpfs
 ```
 
-Esta query exige simultaneamente: mesmo hardware + mesmo destino Pix + três ou mais identidades distintas — produzindo **reduzindo significativamente a incidência de falsos positivos para este cenário de fraude.**
+Esta query exige simultaneamente: mesmo hardware + mesmo destino Pix + três ou mais identidades distintas — **reduzindo significativamente a incidência de falsos positivos para este cenário de fraude.**
 
 ---
 
