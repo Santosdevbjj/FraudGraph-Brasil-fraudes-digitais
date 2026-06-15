@@ -72,7 +72,7 @@ O modelo foca na simplicidade e na densidade de relacionamentos:
 *   `(:Cliente)-[:UTILIZA]->(:Dispositivo)`
 *   `(:Cliente)-[:TRANSFERIU]->(:ContaDestino)`
 
-## ⚙️ 6. Decisões Técnicas & Trade-offs (Visão Luiz Café)
+## ⚙️ 6. Decisões Técnicas & Trade-offs
 *   **Por que Neo4j?** A detecção de fraudes de rede exige a busca por padrões de caminhos (*pathfinding*). No Neo4j, o custo computacional de caminhar pelos relacionamentos é constante $O(1)$, enquanto em bancos SQL relacionais o custo cresce exponencialmente a cada novo cruzamento necessário.
 *   **Por que o Agente de IA com Raciocínio?** Dados de grafos puros geram saídas estruturadas (JSON). O Agente atua como a ponte entre a Engenharia de Dados e a Diretoria de Operações, transformando métricas técnicas em um relatório interpretável em linguagem natural humana.
 
