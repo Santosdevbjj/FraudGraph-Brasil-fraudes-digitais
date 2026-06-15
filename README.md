@@ -8,7 +8,7 @@ Este projeto foi desenvolvido especialmente para o **Aura Agent Hackathon (2026)
 
 ---
 
-## 🎯 1. Problema de Negócio (Visão Meigarom Lopes)
+## 🎯 1. Problema de Negócio
 O crescimento de fraudes cometidas por meio de engenharia social e vetores automatizados gerou um aumento expressivo no volume de contestação de transações (*chargebacks*) e perdas financeiras operacionais no ecossistema bancário nacional. O desafio crítico não está em analisar transações isoladas, mas em **identificar as redes de relacionamento** que os criminosos utilizam (como o compartilhamento de um mesmo dispositivo móvel por dezenas de CPFs distintos para alimentar contas laranjas).
 
 ## 🏢 2. Contexto & Baseline
