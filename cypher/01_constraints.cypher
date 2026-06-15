@@ -1,0 +1,11 @@
+CREATE CONSTRAINT cliente_cpf IF NOT EXISTS
+FOR (c:Cliente)
+REQUIRE c.cpf IS UNIQUE;
+
+CREATE CONSTRAINT dispositivo_id IF NOT EXISTS
+FOR (d:Dispositivo)
+REQUIRE d.device_id IS UNIQUE;
+
+CREATE CONSTRAINT conta_pix IF NOT EXISTS
+FOR (p:ContaDestino)
+REQUIRE p.pix IS UNIQUE;
