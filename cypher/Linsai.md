@@ -1,5 +1,3 @@
----
-
 
 
 Construindo Agentes no Neo4j Aura › Introdução ao Agente Aura
