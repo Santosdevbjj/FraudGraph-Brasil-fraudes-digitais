@@ -8,6 +8,77 @@ Este projeto foi desenvolvido especialmente para o **Aura Agent Hackathon (2026)
 
 ---
 
+# 🛡️ FraudGraph Brasil - Grafos e IA contra Fraudes Digitais
+
+[![Neo4j](https://img.shields.io/badge/Neo4j-Aura-blue?style=flat-square&logo=neo4j)](https://neo4j.com/)
+[![Python](https://img.shields.io/badge/Python-3.10+-yellow?style=flat-square&logo=python)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-MVP-FF4B4B?style=flat-square&logo=streamlit)](https://streamlit.io/)
+
+Este projeto foi desenvolvido para o **Aura Agent Hackathon (2026)** da Neo4j. Ele mostra como **bancos de dados em grafos** combinados com **Agentes de IA com raciocínio lógico (Reasoning)** podem detectar redes de fraude digital que passam despercebidas em sistemas tradicionais.
+
+---
+
+## 🎯 Problema de Negócio
+O setor bancário brasileiro enfrenta perdas crescentes com **fraudes digitais via Pix**. O desafio não é apenas identificar transações isoladas, mas **mapear redes de relacionamento criminosas** — como múltiplos CPFs operando no mesmo dispositivo para alimentar contas laranjas.
+
+---
+
+## 🏢 Contexto & Baseline
+- **Contexto:** Criminosos operam “centrais de fraude” alternando CPFs em um mesmo celular para pulverizar valores roubados.
+- **Baseline:** Sistemas antifraude baseados em SQL usam regras estáticas e múltiplos JOINs, inviáveis em tempo real. O Neo4j permite consultas relacionais com custo constante $O(1)$.
+
+---
+
+## 📋 Premissas
+- Dados de `device_id` e `ip` são confiáveis no login.
+- Mais de 3 CPFs ativos em um mesmo hardware com destino inédito = **alerta vermelho**.
+
+---
+
+## 🛠️ Estratégia da Solução
+1. **Ingestão de Dados**: criação de nós e relacionamentos no **Neo4j Aura Cloud**.  
+2. **Detecção de Padrões**: queries Cypher isolam triangulações suspeitas.  
+3. **Camada Agentiva**: agente IA (LangChain + OpenAI) interpreta subgrafos e gera parecer executivo.  
+4. **Interface**: dashboard em **Streamlit** para auditoria e compliance.
+
+---
+
+## 🕸️ Modelo de Grafo
+- `(:Cliente {cpf, nome})`  
+- `(:Dispositivo {device_id, ip})`  
+- `(:ContaDestino {pix, banco})`  
+
+Relacionamentos:
+- `(:Cliente)-[:UTILIZA]->(:Dispositivo)`  
+- `(:Cliente)-[:TRANSFERIU]->(:ContaDestino)`  
+
+---
+
+## ⚙️ Decisões Técnicas
+- **Neo4j**: consultas relacionais em tempo real sem explosão de JOINs.  
+- **Agente IA**: traduz JSON técnico em insights de negócio compreensíveis.  
+- **Streamlit**: interface rápida para MVP.  
+
+---
+
+## 📊 Insights & Resultados
+- Cluster detectado: **3 CPFs distintos** usando o mesmo dispositivo (`IPHONE999`) enviando valores para `fraude@pix.com`.  
+- **Impacto de negócio**: resposta reduzida de horas para milissegundos, mitigando perdas e multas regulatórias.  
+
+---
+
+## 🚀 Como Executar
+```bash
+git clone https://github.com/Santosdevbjj/FraudGraph-Brasil-fraudes-digitais.git
+pip install -r requirements.txt
+cp .env.example .env   # configure suas credenciais
+streamlit run src/ui/app.py
+
+
+
+
+---
+
 ## 🎯 1. Problema de Negócio
 O crescimento de fraudes cometidas por meio de engenharia social e vetores automatizados gerou um aumento expressivo no volume de contestação de transações (*chargebacks*) e perdas financeiras operacionais no ecossistema bancário nacional. O desafio crítico não está em analisar transações isoladas, mas em **identificar as redes de relacionamento** que os criminosos utilizam (como o compartilhamento de um mesmo dispositivo móvel por dezenas de CPFs distintos para alimentar contas laranjas).
 
