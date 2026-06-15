@@ -1,4 +1,13 @@
-...
+NEO4J_URI
+
+NEO4J_PASSWORD
+
+OPENAI_API_KEY
+
+
+
+
+---
 
 
 
