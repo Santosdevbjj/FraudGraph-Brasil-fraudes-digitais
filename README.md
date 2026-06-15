@@ -28,6 +28,9 @@ Desenvolvemos uma abordagem baseada em **GraphRAG (Graph-based Retrieval-Augment
 
 ---
 
+```
+
+
 ┌──────────────────────┐
 │   Massa de Dados     │
 └──────────┬───────────┘
@@ -51,6 +54,8 @@ Desenvolvemos uma abordagem baseada em **GraphRAG (Graph-based Retrieval-Augment
 │  (Parecer de Negócio)   │
 └─────────────────────────┘ 
 
+
+```
 
 ---
 
